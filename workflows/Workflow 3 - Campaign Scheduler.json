@@ -1,0 +1,521 @@
+{
+  "name": "Workflow 3 - Campaign Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "983206d0-d657-4337-9335-41a9238e7e37",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b931edd9-38f3-402d-a9e3-fa73d4434aba",
+      "name": "Get Leads from Database",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\nreturn items.filter(item => {\n  const nextActionAt = item.json['Next Action At'];\n\n  if (!nextActionAt) {\n    return false;\n  }\n\n  return new Date(nextActionAt) <= now;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3fc30ad1-22a9-4e90-8d88-10a234f7815b",
+      "name": "Identify Due Leads"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1334843829,
+          "mode": "list",
+          "cachedResultName": "Campaign Sequences",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=1334843829"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Campaign",
+              "lookupValue": "={{ $('Identify Due Leads').item.json.Campaign }}"
+            },
+            {
+              "lookupColumn": "Step",
+              "lookupValue": "={{ Number($('Identify Due Leads').item.json['Current Step']) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "cb473187-e530-4f61-81c5-884dffc8562f",
+      "name": "Get Campaign Sequence of Due Leads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dueLeads = $('Identify Due Leads').all();\n\nreturn items.map((item, index) => {\n  const lead = dueLeads[index].json;\n\n  return {\n    json: {\n      row_number: lead['row_number'],\n      leadId: lead['Lead ID'],\n      firstName: lead['First Name'],\n      lastName: lead['Last Name'],\n      email: lead['Email'],\n      company: lead['Company'],\n      jobTitle: lead['Job Title'],\n      linkedInURL: lead['LinkedIn URL'],\n      phone: lead['Phone'],\n\n      campaign: item.json['Campaign'],\n      step: item.json['Step'],\n      action: item.json['Action'],\n      wait: item.json['Wait'],\n      waitUnit: item.json['Wait Unit'],\n      status: item.json['Status'],\n      nextAction: item.json['Next Action'],\n      nextWait: item.json['Next Wait'],\n      nextWaitUnit: item.json['Next Wait Unit'],\n      subject: item.json['Subject'],\n      emailbody: item.json['Email Body']\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "4473779c-782d-4751-a6c9-4c0259eed5ed",
+      "name": "Prepare Due Lead Actions"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.emailbody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "3a43941d-8440-4224-b713-34512c597321",
+      "name": "Send a message",
+      "webhookId": "104f048e-23c3-4059-a4f1-eefc7daed873",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJ85Ribo98ryQ7LB",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const lead = item.json;\n\n  let nextActionAt = null;\n\n  if (lead.nextAction !== 'Sequence Completed') {\n    const wait = Number(lead.nextWait) || 0;\n    const now = new Date();\n\n    if (lead.nextWaitUnit === 'Days') {\n      nextActionAt = new Date(\n        now.getTime() + wait * 24 * 60 * 60 * 1000\n      ).toISOString();\n    } else if (lead.nextWaitUnit === 'Hours') {\n      nextActionAt = new Date(\n        now.getTime() + wait * 60 * 60 * 1000\n      ).toISOString();\n    } else if (lead.nextWaitUnit === 'Minutes') {\n      nextActionAt = new Date(\n        now.getTime() + wait * 60 * 1000\n      ).toISOString();\n    }\n  }\n\n  return {\n    json: {\n      row_number: lead.row_number,\n      leadId: lead.leadId,\n\n      currentStep: Number(lead.step) + 1,\n      status: lead.status,\n      lastActivity: new Date().toISOString(),\n      nextAction: lead.nextAction,\n      nextActionAt,\n\n      gmailMessageId: lead.id,\n      gmailThreadId: lead.threadId\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        0
+      ],
+      "id": "17d2ec8e-732f-4e8e-af1c-acd32d59a7dc",
+      "name": "Prepare Lead Database Update"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1296,
+        192
+      ],
+      "id": "e6e5afe9-7ee9-4fbe-bc4f-cd2243740852",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $json.leadId }}",
+            "Current Step": "={{ $json.currentStep }}",
+            "Status": "={{ $json.status }}",
+            "Last Activity": "={{ $json.lastActivity }}",
+            "Next Action": "={{ $json.nextAction }}",
+            "Next Action At": "={{ $json.nextActionAt }}"
+          },
+          "matchingColumns": [
+            "Lead ID"
+          ],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Campaign",
+              "displayName": "Campaign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Outreach Channel",
+              "displayName": "Outreach Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Current Step",
+              "displayName": "Current Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity",
+              "displayName": "Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action At",
+              "displayName": "Next Action At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Owner",
+              "displayName": "Owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "6ba4def4-0796-4cfe-8b06-6fa4e4426661",
+      "name": "Update Lead in Database",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Leads from Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Leads from Database": {
+      "main": [
+        [
+          {
+            "node": "Identify Due Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Due Leads": {
+      "main": [
+        [
+          {
+            "node": "Get Campaign Sequence of Due Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Campaign Sequence of Due Leads": {
+      "main": [
+        [
+          {
+            "node": "Prepare Due Lead Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Due Lead Actions": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead Database Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lead Database Update": {
+      "main": [
+        [
+          {
+            "node": "Update Lead in Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "2TzZU9BxtgLHvyHX",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "f944ebe1-b368-45be-bf7b-11209a0e6a17",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "79409e0cf97501ad690b0438715c3fd60b0d349281059bf9d9da828644b1a98d"
+  },
+  "nodeGroups": [],
+  "id": "t0uWVPX0VPIDPc0u",
+  "tags": []
+}

@@ -1,0 +1,1262 @@
+{
+  "name": "Workflow 1 - Lead Intake & Campaign Progression",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "45443547-691b-4d49-8549-bc4c14fe2781",
+      "name": "Google Sheets Trigger",
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "n7wXgcbLA89iTeOZ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the leads that came in through the trigger\nconst incomingItems = $(\"Google Sheets Trigger\").all();\n\n// Get the current, fresh rows from Google Sheets\nconst rows = $input.all();\n\nconst results = [];\n\nfor (const incomingItem of incomingItems) {\n  const incoming = incomingItem.json;\n\n  const incomingEmail = String(\n    incoming.Email ?? \"\"\n  ).trim().toLowerCase();\n\n  let matchingRows = [];\n\nif (incomingEmail) {\n  matchingRows = rows.filter(item => {\n    const email = String(\n      item.json.Email ?? \"\"\n    ).trim().toLowerCase();\n\n    return email === incomingEmail;\n  });\n}\n\n\n  const isDuplicate = matchingRows.length > 1;\n\n  // Use the CURRENT database row as the lead record\n  // rather than the stale trigger record.\n  const lead = matchingRows[0]?.json ?? incoming;\n\n  results.push({\n    json: {\n      ...lead,\n      duplicate: isDuplicate,\n      incomingEmail,\n      matchingRows: matchingRows.map(row => ({\n        row_number: row.json.row_number,\n        email: row.json.Email\n      })),\n      duplicateRow: isDuplicate\n        ? matchingRows.find(\n            row => row.json.row_number !== lead.row_number\n          )?.json ?? null\n        : null\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "fe4077f2-87f4-46b3-accd-1694e6059121",
+      "name": "Identify Duplicate Entries"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "startIndex": "={{ $json.duplicateRow }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        848,
+        -144
+      ],
+      "id": "d5bdd28d-9458-4028-8792-3dc84200e56c",
+      "name": "Delete Duplicate Entry",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2c6ea7ea-e364-485e-8b1a-0a7ef9a309c5",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "42228637-b401-4a2d-8937-348fff493464",
+      "name": "Pass the duplicate for deletion"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Campaign }}",
+                    "rightValue": "Q3 Outreach",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e52c71cc-389b-474c-b080-8411ad502894"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Q3 Outreach"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d2889b77-9338-43e0-867a-5851002cd14e",
+                    "leftValue": "={{ $json.Campaign }}",
+                    "rightValue": "Enterprise Campaign",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Enterprise Campaign"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "8db454f4-2f4b-4f17-8b14-48890d945d15",
+      "name": "Campaign Routing"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json['Wait'] }}",
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        -112
+      ],
+      "id": "8262764e-f0b3-47c3-97fc-73c27982550c",
+      "name": "Wait Days",
+      "webhookId": "c170dcb9-4b2b-4f3c-8770-fea8bd7aacc8"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json['Wait'] }}",
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        96
+      ],
+      "id": "e3bfbf2f-d918-45a7-8d22-556e572b82ae",
+      "name": "Wait Days1",
+      "webhookId": "c170dcb9-4b2b-4f3c-8770-fea8bd7aacc8"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $('Campaign Routing').item.json['Lead ID'] }}",
+            "First Name": "={{ $('Campaign Routing').item.json['First Name'] }}",
+            "Last Name": "={{ $('Campaign Routing').item.json['Last Name'] }}",
+            "Company": "={{ $('Campaign Routing').item.json.Company }}",
+            "Job Title": "={{ $('Campaign Routing').item.json['Job Title'] }}",
+            "Email": "={{ $('Campaign Routing').item.json.Email }}",
+            "LinkedIn URL": "={{ $('Campaign Routing').item.json['LinkedIn URL'] }}",
+            "Phone": "={{ $('Campaign Routing').item.json.Phone }}",
+            "Campaign": "={{ $('Campaign Routing').item.json.Campaign }}",
+            "Current Step": "={{ Number($('Enterprise: Get Next Campaign Step').item.json.Step) + 1 }}",
+            "Last Activity": "={{ $now }}",
+            "Next Action": "={{ $('Enterprise: Get Next Campaign Step').item.json['Next Action'] }}",
+            "Next Action At": "={{\n$('Enterprise: Get Next Campaign Step').item.json['Next Action'] === 'Sequence Completed'\n?\n''\n:\n$now.plus({\n  days: Number(\n    $('Enterprise: Get Next Campaign Step')\n    .item.json['Next Action']\n    .match(/\\d+/)?.[0] || 0\n  )\n})\n}}",
+            "Status": "={{ $('Enterprise: Get Next Campaign Step').item.json['Status'] }}",
+            "Owner": "={{ $('Campaign Routing').item.json.Owner }}",
+            "Notes": "={{ $('Campaign Routing').item.json.Notes }}"
+          },
+          "matchingColumns": [
+            "Lead ID"
+          ],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign",
+              "displayName": "Campaign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Step",
+              "displayName": "Current Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity",
+              "displayName": "Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action At",
+              "displayName": "Next Action At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Owner",
+              "displayName": "Owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2560,
+        96
+      ],
+      "id": "1bfeab7c-75aa-4551-9f5d-a20ec541f428",
+      "name": "Update Step and Next Action Column1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $('Campaign Routing').item.json['Lead ID'] }}",
+            "First Name": "={{ $('Campaign Routing').item.json['First Name'] }}",
+            "Last Name": "={{ $('Campaign Routing').item.json['Last Name'] }}",
+            "Company": "={{ $('Campaign Routing').item.json.Company }}",
+            "Job Title": "={{ $('Campaign Routing').item.json['Job Title'] }}",
+            "Email": "={{ $('Campaign Routing').item.json.Email }}",
+            "LinkedIn URL": "={{ $('Campaign Routing').item.json['LinkedIn URL'] }}",
+            "Phone": "={{ $('Campaign Routing').item.json.Phone }}",
+            "Campaign": "={{ $('Campaign Routing').item.json.Campaign }}",
+            "Current Step": "={{ Number($('Q3 Outreach: Get Next Campaign Step').item.json.Step) + 1 }}",
+            "Last Activity": "={{ $now }}",
+            "Next Action": "={{ $('Q3 Outreach: Get Next Campaign Step').item.json['Next Action'] }}",
+            "Next Action At": "={{\n$('Q3 Outreach: Get Next Campaign Step').item.json['Next Action'] === 'Sequence Completed'\n? ''\n: $now.plus({\n    days: Number(\n      $('Q3 Outreach: Get Next Campaign Step')\n      .item.json['Next Action']\n      .match(/\\d+/)?.[0] || 0\n    )\n  })\n}}",
+            "Status": "={{ $('Q3 Outreach: Get Next Campaign Step').item.json['Status'] }}",
+            "Owner": "={{ $('Campaign Routing').item.json.Owner }}",
+            "Notes": "={{ $('Campaign Routing').item.json.Notes }}"
+          },
+          "matchingColumns": [
+            "Lead ID"
+          ],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign",
+              "displayName": "Campaign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Step",
+              "displayName": "Current Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity",
+              "displayName": "Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action At",
+              "displayName": "Next Action At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Owner",
+              "displayName": "Owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2560,
+        -112
+      ],
+      "id": "8c4975a7-d4cc-4cf2-bf97-52bc5a3fb5d3",
+      "name": "Update Step and Next Action Column2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const lead = item.json;\n\n  const email = String(lead['Email'] || '').trim();\n  const status = String(lead['Status'] || '').trim().toLowerCase();\n\n  let isEligible = true;\n  let eligibilityReason = 'Eligible';\n\n  // Lead must have an email address for the current email campaigns\n  if (!email) {\n    isEligible = false;\n    eligibilityReason = 'Missing email address';\n  }\n\n  // Do not re-enter leads who have opted out\n  else if (status === 'do not contact') {\n    isEligible = false;\n    eligibilityReason = 'Do Not Contact';\n  }\n\n  // Do not re-enter leads that are already inactive\n  else if (status === 'inactive') {\n    isEligible = false;\n    eligibilityReason = 'Lead is inactive';\n  }\n\n  // Do not restart completed sequences\n  else if (status === 'sequence completed') {\n    isEligible = false;\n    eligibilityReason = 'Sequence already completed';\n  }\n\n  lead.isEligible = isEligible;\n  lead.eligibilityReason = eligibilityReason;\n\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        144
+      ],
+      "id": "d674c19e-a872-4e6f-9c04-94dd89e8f7fa",
+      "name": "Evaluate Lead Eligibility"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a84d6701-3b26-4867-bade-81b146148983",
+              "leftValue": "={{ $json.isEligible }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        128
+      ],
+      "id": "0bc46683-c2d1-4dc5-a1c0-44cf0ac46412",
+      "name": "Pass Lead Eligibility"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eligibilityReason }}",
+                    "rightValue": "Sequence already completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "86d3696a-746f-41f3-8f44-eae5623ff276"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sequence Already Completed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "34c89114-4991-4b03-a9cb-45a26219b28a",
+                    "leftValue": "={{ $json.eligibilityReason }}",
+                    "rightValue": "Do Not Contact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Do Not Contact"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e86deb64-acef-404b-b80e-7fd484310dbf",
+                    "leftValue": "={{ $json.eligibilityReason }}",
+                    "rightValue": "Missing email address",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Missing Contact Info"
+            }
+          ]
+        },
+        "looseTypeValidation": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        272
+      ],
+      "id": "50f4a231-3f5b-4cea-b288-1c77a0dd95d4",
+      "name": "Eligibility Reasons"
+    },
+    {
+      "parameters": {
+        "sendTo": "sales@example.com",
+        "subject": "=Lead Requires Manual Contact Review — {{ $json['First Name'] }} {{ $json['Last Name'] }}",
+        "message": "=A lead entered the outreach workflow but cannot be processed through the current email campaign.  Lead: {{ $json['First Name'] }} {{ $json['Last Name'] }}  Company: {{ $json['Company'] }}  Job Title: {{ $json['Job Title'] }}  Email: {{ $json['Email'] || 'Missing' }}  Phone: {{ $json['Phone'] || 'Missing' }}  LinkedIn: {{ $json['LinkedIn URL'] || 'Missing' }}  Reason: {{ $json['eligibilityReason'] }}  \n\nAction Required: Manually review this lead and obtain valid contact information before adding them to an email outreach sequence.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        384
+      ],
+      "id": "07c96948-fb9e-4c50-8ec8-e731b94686eb",
+      "name": "Send a message",
+      "webhookId": "ffff040d-b8d3-4f15-845f-75f1c09284f0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJ85Ribo98ryQ7LB",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c03ff82b-c9f6-430b-ae5d-e996bcd1be22",
+      "name": "Get Leads from Database",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30e272be-9392-42bc-80df-ceae366ba3a5",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "New",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "b38dd0b7-b68f-495f-9da0-80d648a9a43d",
+              "leftValue": "={{ $json[\"Current Step\"] }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "7e6e49ba-fb17-484b-ad79-a538db8de174",
+              "leftValue": "={{ $json[\"Next Action At\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        144
+      ],
+      "id": "10baa20b-c4e1-4755-ad69-e728bcfb80aa",
+      "name": "Check If Lead Is New"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Campaign Routing').item.json.Email }}",
+        "subject": "Test Follow Up",
+        "message": "Test Follow Up",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2272,
+        -112
+      ],
+      "id": "a5f48917-15e4-4bef-8e9b-b8dea1e53148",
+      "name": "Q3 Outreach: Send Intro Email",
+      "webhookId": "1adde0bc-19da-45a8-916c-8ce0c8c8a409",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJ85Ribo98ryQ7LB",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Campaign Routing').item.json.Email }}",
+        "subject": "Test Follow Up",
+        "message": "Test Follow Up",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2272,
+        96
+      ],
+      "id": "c118ffa7-9e8c-4a5b-be02-5ef74f7077a6",
+      "name": "Enterprise Campaign: Send Intro Email",
+      "webhookId": "1adde0bc-19da-45a8-916c-8ce0c8c8a409",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJ85Ribo98ryQ7LB",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1334843829,
+          "mode": "list",
+          "cachedResultName": "Campaign Sequences",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=1334843829"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Campaign",
+              "lookupValue": "={{ $('Campaign Routing').item.json.Campaign }}"
+            },
+            {
+              "lookupColumn": "Step",
+              "lookupValue": "={{ $('Campaign Routing').item.json['Current Step'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1856,
+        -112
+      ],
+      "id": "dc6cd9fc-58c1-4f45-966c-104298210313",
+      "name": "Q3 Outreach: Get Next Campaign Step",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1334843829,
+          "mode": "list",
+          "cachedResultName": "Campaign Sequences",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=1334843829"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Campaign",
+              "lookupValue": "={{ $('Campaign Routing').item.json.Campaign }}"
+            },
+            {
+              "lookupColumn": "Step",
+              "lookupValue": "={{ $('Campaign Routing').item.json['Current Step'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1856,
+        96
+      ],
+      "id": "3cdf6a5c-d0aa-4a50-9bfb-4c03f3e7f842",
+      "name": "Enterprise: Get Next Campaign Step",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Leads from Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Duplicate Entries": {
+      "main": [
+        [
+          {
+            "node": "Pass the duplicate for deletion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass the duplicate for deletion": {
+      "main": [
+        [
+          {
+            "node": "Delete Duplicate Entry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Evaluate Lead Eligibility",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campaign Routing": {
+      "main": [
+        [
+          {
+            "node": "Q3 Outreach: Get Next Campaign Step",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enterprise: Get Next Campaign Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Days": {
+      "main": [
+        [
+          {
+            "node": "Q3 Outreach: Send Intro Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Days1": {
+      "main": [
+        [
+          {
+            "node": "Enterprise Campaign: Send Intro Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Step and Next Action Column1": {
+      "main": [
+        []
+      ]
+    },
+    "Evaluate Lead Eligibility": {
+      "main": [
+        [
+          {
+            "node": "Check If Lead Is New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass Lead Eligibility": {
+      "main": [
+        [
+          {
+            "node": "Campaign Routing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Eligibility Reasons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eligibility Reasons": {
+      "main": [
+        [],
+        [],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Leads from Database": {
+      "main": [
+        [
+          {
+            "node": "Identify Duplicate Entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Lead Is New": {
+      "main": [
+        [
+          {
+            "node": "Pass Lead Eligibility",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q3 Outreach: Send Intro Email": {
+      "main": [
+        [
+          {
+            "node": "Update Step and Next Action Column2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enterprise Campaign: Send Intro Email": {
+      "main": [
+        [
+          {
+            "node": "Update Step and Next Action Column1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Step and Next Action Column2": {
+      "main": [
+        []
+      ]
+    },
+    "Q3 Outreach: Get Next Campaign Step": {
+      "main": [
+        [
+          {
+            "node": "Wait Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enterprise: Get Next Campaign Step": {
+      "main": [
+        [
+          {
+            "node": "Wait Days1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "2TzZU9BxtgLHvyHX",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "15d675c9-9f13-4be3-8fc0-79ebfec6d85d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "79409e0cf97501ad690b0438715c3fd60b0d349281059bf9d9da828644b1a98d"
+  },
+  "nodeGroups": [],
+  "id": "nZVxM2IulVpdfvkR",
+  "tags": []
+}

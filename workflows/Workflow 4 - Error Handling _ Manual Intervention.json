@@ -1,0 +1,303 @@
+{
+  "name": "Workflow 4 - Error Handling / Manual Intervention",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7f31f793-6794-483b-ad0b-3eb35d0aa8ca",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "378de0a1-98f7-4f0c-adb1-454c4342676c",
+              "name": "Incident ID",
+              "value": "={{ 'ERR-' + $now.toFormat('yyyyLLdd-HHmmss') }}",
+              "type": "string"
+            },
+            {
+              "id": "4d22b9a0-f5a1-4185-ae7d-b864a4fdb733",
+              "name": "Detected At",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "6dc82164-13c5-47b7-97f9-ece22cc86f9f",
+              "name": "Workflow",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "7ec81588-97e4-4e97-915b-fedf5ee7ce19",
+              "name": "Failed Node",
+              "value": "={{ $json.execution.lastNodeExecuted || 'Not available' }}",
+              "type": "string"
+            },
+            {
+              "id": "5530f5a9-0368-4793-9677-b840db29df22",
+              "name": "=Error Message",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "f5cf724e-034d-44b5-a876-7f828f9c4e27",
+              "name": "Execution URL",
+              "value": "={{ $json.execution.url }}",
+              "type": "string"
+            },
+            {
+              "id": "1f85ec1c-2ddd-4c87-a1a0-d76c3715046f",
+              "name": "Status",
+              "value": "Open",
+              "type": "string"
+            },
+            {
+              "id": "472eb94b-679c-4ef8-aafd-aa1a3ec98c61",
+              "name": "Owner",
+              "value": "Josh",
+              "type": "string"
+            },
+            {
+              "id": "94b87b20-6a4e-41e1-86f3-5689b8e0cf52",
+              "name": "Resolution Notes",
+              "value": "Pending manual review",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2f6ef5b7-be9e-49ee-b34d-c53edc49cf43",
+      "name": "Prepare Failure Record"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew",
+          "mode": "list",
+          "cachedResultName": "Lead Database - Multi-Channel Outreach Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 18681918,
+          "mode": "list",
+          "cachedResultName": "Errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12qJKjWgNUR4rd_nNqrqJcpfiH5rtJ0ghqTZD-6npfew/edit#gid=18681918"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Incident ID": "={{ $json[\"Incident ID\"] }}",
+            "Detected At": "={{ $json[\"Detected At\"] }}",
+            "Workflow": "={{ $json[\"Workflow\"] }}",
+            "Failed Node": "={{ $json[\"Failed Node\"] }}",
+            "Error Message": "={{ $json[\"Error Message\"] }}",
+            "Execution URL": "={{ $json[\"Execution URL\"] }}",
+            "Status": "={{ $json[\"Status\"] }}",
+            "Owner": "={{ $json[\"Owner\"] }}",
+            "Resolution Notes": "={{ $json[\"Resolution Notes\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Incident ID",
+              "displayName": "Incident ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Detected At",
+              "displayName": "Detected At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Workflow",
+              "displayName": "Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Failed Node",
+              "displayName": "Failed Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Execution URL",
+              "displayName": "Execution URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Owner",
+              "displayName": "Owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resolution Notes",
+              "displayName": "Resolution Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "fd7cce0d-a8cc-4c92-96fe-21e0bb75efe9",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrjMES6zd9qqAO6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "josh.collingwood2000@gmail.com",
+        "subject": "=⚠️ Manual Intervention Required — {{ $json[\"Workflow\"] }}",
+        "message": "=A workflow execution failed and requires review.  Workflow: {{ $json[\"Workflow\"] }} Failed node: {{ $json[\"Failed Node\"] }} Error: {{ $json[\"Error Message\"] }} Execution: {{ $json[\"Execution URL\"] }}  Incident ID: {{ $json[\"Incident ID\"] }} Status: {{ $json[\"Status\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "82f23134-67c3-42ab-9edf-8e3746e3b78b",
+      "name": "Send a message",
+      "webhookId": "8a59bdd1-2c5c-49d8-9339-471a17cc6ffa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJ85Ribo98ryQ7LB",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Failure Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Failure Record": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a44dfdee-0c4c-41d6-95a9-156fe8c60c35",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "79409e0cf97501ad690b0438715c3fd60b0d349281059bf9d9da828644b1a98d"
+  },
+  "nodeGroups": [],
+  "id": "2TzZU9BxtgLHvyHX",
+  "tags": []
+}
